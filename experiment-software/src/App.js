@@ -1,11 +1,12 @@
 import './App.css';
 import { Button, Typography } from "@material-ui/core"
 import React from 'react';
+import { useEffect } from 'react';
 
 var curPage = 0
-var pageDisplay = [true, false, false, false, false];
-const pageChange = new CustomEvent("newpage", {detail: curPage});
-var timelist = []
+var pageDisplay = [true, false, false, false, false, false];
+const pageChange = new Event("newpage");
+var timelist = [0, 3000, 6000, 9000, 12000]
 var time = 0
 var trials = 0
 
@@ -19,10 +20,6 @@ function StartScreen() {
     setShow(false)
     window.dispatchEvent(pageChange)
     
-    if (timelist.length == 0) {
-      timelist = [0, 3000, 6000, 9000, 12000]
-    }
-
     var timelistIndex = Math.floor(Math.random()*timelist.length)
     time = timelist[timelistIndex]
     timelist.splice(timelistIndex, 1)
@@ -131,7 +128,7 @@ function RecallScreen() {
         curPage = 4
         window.dispatchEvent(pageChange)
         setShow(false)
-      }, 5000)
+      }, 6000)
     }
   }
 
@@ -166,21 +163,17 @@ function ResultsScreen() {
   function thisPage() {
     if (curPage == 4) {
       setShow(true)
-    }
-  }
-
-  function nextPage(event) {
-    if (event.isComposing || event.keyCode === 32) {
-      pageDisplay[4] = false
-      pageDisplay[0] = true
-      curPage = 0
-      window.dispatchEvent(pageChange)
-      setShow(false)
+      setTimeout(() => {
+        pageDisplay[4] = false
+        pageDisplay[5] = true
+        curPage = 5
+        window.dispatchEvent(pageChange)
+        setShow(false)
+      }, 6000)
     }
   }
 
   window.addEventListener('newpage', function (e) {thisPage()}, false);
-  window.addEventListener('keydown', nextPage, false);
 
   return (
     <div>{pageDisplay[4] ? <div style={{
@@ -205,6 +198,71 @@ function ResultsScreen() {
   )
 }
 
+function RestScreen() {
+  const [show, setShow] = React.useState(false)
+  const [seconds, setSeconds] = React.useState(15)
+
+  useEffect(() => {
+    if (show == true){
+      if (seconds > 0) {
+        setTimeout(() => {setSeconds(seconds - 1)}, 1000)
+        console.log(seconds)
+      } else {
+        setSeconds(15)
+        setShow(false)
+
+        if (timelist.length == 0) {
+          timelist = [0, 3000, 6000, 9000, 12000]
+          pageDisplay[5] = false
+          pageDisplay[0] = true
+          curPage = 0
+          window.dispatchEvent(pageChange)
+        } else {
+          var timelistIndex = Math.floor(Math.random()*timelist.length)
+          time = timelist[timelistIndex]
+          timelist.splice(timelistIndex, 1)
+          trials ++
+
+          pageDisplay[5] = false
+          pageDisplay[1] = true
+          curPage = 1
+          window.dispatchEvent(pageChange)
+        }
+      }
+    }
+  })
+
+  window.addEventListener('newpage', function (e) {curPage === 5 ? setShow(true): setShow(false)}, false);
+
+  return (
+    <div>{pageDisplay[5] ? <div style={{
+      width: "100vw", 
+      height: "100vh",
+      backgroundColor: "#FF595E",
+      position: "fixed",
+      zIndex: 100,
+      top: "0px",
+      left: "0px"}}>
+        <Typography align="center" variant="h2" style={{
+          margin: "auto",
+          color: "white",
+          position: "relative",
+          top: "45%"}}>{`[${time/1000}]`}</Typography>
+        <Typography align="center" variant="h2" style={{
+          margin: "auto",
+          color: "white",
+          position: "relative",
+          top: "55%"}}>{trials == 5? "Session complete" :`${seconds} seconds until Trial ${trials+1}`}</Typography>
+        {trials == 5? 
+          <Typography align="center" variant="h3" style={{
+          margin: "auto",
+          color: "white",
+          position: "relative",
+          top: "65%"}}>Your proctor will now debrief you</Typography>: null}
+    </div> : null}</div>
+  )
+}
+
 function App() {
   return (
     <div style={{
@@ -220,6 +278,7 @@ function App() {
         <WaitPeriod/>
         <RecallScreen/>
         <ResultsScreen/>
+        <RestScreen/>
     </div>
   );
 }
